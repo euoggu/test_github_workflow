@@ -182,17 +182,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - name: 使用 jpackage 创建应用程序镜像 (Windows ARM64)
+        shell: bash
         run: |
           set -x
-              # Start of Selection
-              jpackage `
-                --name my-app-windows-arm64 `
-                --verbose `
-                --description "我的 Spring Boot 应用程序 (Windows ARM64)" `
-                --vendor "我的公司" `
-                --input . `
-                --main-jar "app.jar" `
-                --dest output-windows-arm64
+          # Start of Selection
+          jpackage \
+            --name my-app-windows-arm64 \
+            --verbose \
+            --description "我的 Spring Boot 应用程序 (Windows ARM64)" \
+            --vendor "我的公司" \
+            --input . \
+            --main-jar "app.jar" \
+            --dest output-windows-arm64
+
       - name: 上传 Windows ARM64 工件
         uses: actions/upload-artifact@v3
         with:
