@@ -54,6 +54,7 @@ jobs:
         run: |
           set -x
           pwd
+          ls -l /home/runner/work/test_github_workflow/test_github_workflow/app.jar
           find /home/runner/work/ -name "app.jar"
             jpackage \
             --name my-app-arm64 \
