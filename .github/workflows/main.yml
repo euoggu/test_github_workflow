@@ -160,6 +160,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          architecture: 'arm64'
       - name: 使用 jpackage 创建应用程序镜像 (macOS ARM64)
         run: |
           set -x
