@@ -1,4 +1,4 @@
-name: Build and Package Artifacts
+name: BuildandPackageArtifacts
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
 
 jobs:
   job1:
-    name: Build and Upload JAR
+    name: BuildandUploadJAR
     runs-on: ubuntu-latest
     outputs:
       jar_path: ${{ steps.upload_jar.outputs.upload-url }}
@@ -38,7 +38,7 @@ jobs:
           path: ${{ steps.find_jar.outputs.JAR_PATH }}
 
   job2:
-    name: Package ARM64 Artifact
+    name: PackageARM64Artifact
     needs: job1
     runs-on: ubuntu-latest
     steps:
@@ -53,13 +53,14 @@ jobs:
       - name: Create application image with jpackage (ARM64)
         run: |
           set -x
+          find . -name "app.jar"
             jpackage \
             --name my-app-arm64 \
             --verbose \
             --description "My Spring Boot Application (ARM64)" \
             --vendor "My Company" \
             --input . \
-            --main-jar "/home/runner/work/Build and Package Artifacts/euoggu/test_github_workflow/app.jar" \
+            --main-jar "/home/runner/work/BuildandPackage Artifacts/euoggu/test_github_workflow/app.jar" \
             --dest output-arm64
 
       - name: Upload ARM64 Package Artifact
