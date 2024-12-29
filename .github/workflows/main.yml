@@ -66,8 +66,8 @@ jobs:
 
     - name: 打包应用程序 - ${{ matrix.os }} ${{ matrix.arch }}
       run: |
-        VENDOR="YourVendor" # 将 "YourVendor" 替换为你的供应商名称
-        APP_NAME="YourAppName" # 将 "YourAppName" 替换为你的应用名称
+        VENDOR="MyCompany" # 将 "YourVendor" 替换为你的供应商名称
+        APP_NAME="MyApp" # 将 "YourAppName" 替换为你的应用名称
         APP_VERSION=$(echo "${GITHUB_REF#refs/tags/}")
 
         case "${{ matrix.os }}" in
