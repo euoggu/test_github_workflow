@@ -57,6 +57,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          architecture: 'arm64'
       - name: 使用 jpackage 创建应用程序镜像 (Linux ARM64)
         run: |
           set -x
