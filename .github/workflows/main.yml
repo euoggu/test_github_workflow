@@ -112,7 +112,7 @@ jobs:
           name: macos-arm64-package
           path: output-macos-arm64
   job4:
-    name: 制作Windows ARM64工件
+    name: 制作Windows AMD64工件
     needs: job1
     runs-on: windows-latest
     steps:
@@ -125,7 +125,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: 使用 jpackage 创建应用程序镜像 (Windows ARM64)
+      - name: 使用 jpackage 创建应用程序镜像 (Windows AMD64)
         shell: bash
         run: |
           set -x
@@ -139,7 +139,7 @@ jobs:
             --main-jar "app.jar" \
             --dest output-windows-arm64
 
-      - name: 上传 Windows ARM64 工件
+      - name: 上传 Windows AMD64 工件
         uses: actions/upload-artifact@v3
         with:
           name: windows-arm64-package
