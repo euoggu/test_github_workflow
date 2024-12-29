@@ -53,7 +53,7 @@ jobs:
             --description "My Spring Boot Application (ARM64)" \
             --vendor "My Company" \
             --input . \
-            --main-jar app.jar \
+            --main-jar /home/runner/work/${{ github.workflow }}/${{ github.repository }}/app.jar \
             --dest output-arm64
       - name: Upload ARM64 Package Artifact
         uses: actions/upload-artifact@v3
