@@ -182,3 +182,21 @@ jobs:
         with:
           name: windows-amd64-package
           path: ./release/windows-amd64
+      - name: 创建 Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ env.LATEST_TAG }}             # 使用刚才获取的最新 tag
+          name: "Release ${{ env.LATEST_TAG }}"  # Release 名称也可以与 tag 同名
+          body: |
+            自动构建并发布的多平台工件。 
+            包含:
+            - Linux AMD64
+            - macOS ARM64
+            - Windows AMD64
+          draft: false
+          prerelease: false
+          artifacts: |
+            ./release/linux-amd64/**/*
+            ./release/macos-arm64/**/*
+            ./release/windows-amd64/**/*
