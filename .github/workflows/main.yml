@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: '17'
-          distribution: 'adopt'
+          distribution: 'temurin'  # 推荐使用 'temurin'
 
       - name: 构建Maven项目
         run: mvn clean package -DskipTests
@@ -50,8 +50,8 @@ jobs:
       - name: 设置 JDK
         uses: actions/setup-java@v3
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: '17'
+          distribution: 'temurin'  # 推荐使用 'temurin'
 
       - name: 下载构建产物
         uses: actions/download-artifact@v3
@@ -67,48 +67,56 @@ jobs:
           JAR_FILE=$(find . -name "*.jar" -print -quit)
           echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
 
+      - name: 验证 jpackage 是否可用
+        run: jpackage --version
+
       - name: 打包应用程序 - ${{ matrix.os }} ${{ matrix.arch }}
         run: |
-          VENDOR="MyCompany" # 将 "YourVendor" 替换为你的供应商名称
-          APP_NAME="MyApp"   # 将 "YourAppName" 替换为你的应用名称
+          VENDOR="MyCompany" # 将 "MyCompany" 替换为你的供应商名称
+          APP_NAME="MyApp"    # 将 "MyApp" 替换为你的应用名称
           APP_VERSION=$(echo "${GITHUB_REF#refs/tags/}")
           APP_IDENTIFIER_FLAG=""
+          ARCH_FLAG=""
+
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            APP_IDENTIFIER_FLAG="--app-identifier com.${VENDOR}.${APP_NAME}"
+            # 设置正确的 macOS 包标识符
+            ARCH_FLAG="--mac-package-identifier com.${VENDOR}.${APP_NAME}"
           fi
 
           case "${{ matrix.os }}" in
             windows-latest)
               EXT="exe"
-              ARCH_FLAG=""
               ;;
             ubuntu-latest)
               EXT="deb"
-              ARCH_FLAG=""
               ;;
             macos-latest)
               EXT="pkg"
               MAC_APP_VERSION=$(echo "${APP_VERSION}" | sed 's/^v//' | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/')
-              if [[ "${{ matrix.arch }}" == "x64" ]]; then
-                ARCH_FLAG="--mac-pkg-identifier com.${VENDOR}.${APP_NAME}"
-              else
-                ARCH_FLAG="--mac-package-identifier com.${VENDOR}.${APP_NAME}"
-              fi
               ;;
           esac
+
+          echo "打包应用程序 - OS: ${{ matrix.os }}, ARCH: ${{ matrix.arch }}"
+          echo "VENDOR: ${VENDOR}"
+          echo "APP_NAME: ${APP_NAME}"
+          echo "APP_VERSION: ${APP_VERSION}"
+          echo "APP_IDENTIFIER_FLAG: ${APP_IDENTIFIER_FLAG}"
+          echo "ARCH_FLAG: ${ARCH_FLAG}"
+          echo "JAR_FILE: ${JAR_FILE}"
+
           jpackage \
             --dest "build" \
             --type "${EXT}" \
             --app-version "${MAC_APP_VERSION:-$APP_VERSION}" \
             --vendor "${VENDOR}" \
             --name "${APP_NAME}" \
+            ${ARCH_FLAG} \
             --input . \
             --main-jar "${JAR_FILE}" \
             --main-class com.example.githu_bworkflow.GithubWorkflowApplication
-
 
       - name: 上传打包好的应用程序 - ${{ matrix.os }}-${{ matrix.arch }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.os }}-${{ matrix.arch }}-packages
-          path: release/build
+          path: build
