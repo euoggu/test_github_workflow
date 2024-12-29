@@ -59,12 +59,12 @@ jobs:
           name: built-jar
           path: ./
 
-      # 安装打包依赖 (仅适用于 Ubuntu)
       - name: 安装打包依赖 (仅适用于 Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y fakeroot dpkg-deb
+          sudo apt-get install -y fakeroot
+
 
       # 获取 JAR 文件名 - Unix/Linux/macOS
       - name: 获取 JAR 文件名 (Unix/Linux/macOS)
