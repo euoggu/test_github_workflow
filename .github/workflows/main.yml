@@ -20,8 +20,8 @@ jobs:
       - name: 设置 JDK
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
-          distribution: 'temurin'  # 推荐使用 'temurin'
+          java-version: '21'  # 升级到 JDK 21
+          distribution: 'temurin'
 
       - name: 构建Maven项目
         run: mvn clean package -DskipTests
@@ -50,8 +50,8 @@ jobs:
       - name: 设置 JDK
         uses: actions/setup-java@v3
         with:
-          java-version: '21'
-          distribution: 'temurin'  # 推荐使用 'temurin'
+          java-version: '21'  # 升级到 JDK 21
+          distribution: 'temurin'
 
       - name: 下载构建产物
         uses: actions/download-artifact@v3
@@ -59,8 +59,14 @@ jobs:
           name: built-jar
           path: ./
 
+      # 安装打包依赖 (仅适用于 Ubuntu)
+      - name: 安装打包依赖 (仅适用于 Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg-deb
 
-      # 为不同平台定义不同的获取 JAR 文件名步骤
+      # 获取 JAR 文件名 - Unix/Linux/macOS
       - name: 获取 JAR 文件名 (Unix/Linux/macOS)
         if: matrix.os != 'windows-latest'
         run: |
@@ -68,6 +74,7 @@ jobs:
           echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
         shell: bash
 
+      # 获取 JAR 文件名 - Windows
       - name: 获取 JAR 文件名 (Windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -78,25 +85,46 @@ jobs:
       - name: 验证 jpackage 是否可用
         run: jpackage --version
 
-      - name: 打包应用程序 - ${{ matrix.os }} ${{ matrix.arch }}
+      # 调试步骤：列出 images 目录内容
+      - name: 列出 images 目录内容
+        if: matrix.os == 'ubuntu-latest'
+        run: ls -la /tmp/jdk.jpackage*/images
+
+      # 调试步骤：检查 DEBIAN/control 文件
+      - name: 检查 DEBIAN/control 文件
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          CONTROL_FILE=$(find /tmp/jdk.jpackage*/images -name "control")
+          if [ -f "$CONTROL_FILE" ]; then
+            echo "DEBIAN/control 文件存在。内容如下："
+            cat "$CONTROL_FILE"
+          else
+            echo "错误：DEBIAN/control 文件不存在。"
+            exit 1
+          fi
+
+      - name: 打包应用程序 - ${{ matrix.os }}-${{ matrix.arch }}
         run: |
           VENDOR="MyCompany" # 将 "MyCompany" 替换为你的供应商名称
           APP_NAME="MyApp"    # 将 "MyApp" 替换为你的应用名称
           APP_VERSION=$(echo "${GITHUB_REF#refs/tags/}")
-          APP_IDENTIFIER_FLAG=""
           ARCH_FLAG=""
-
+          
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             # 设置正确的 macOS 包标识符
             ARCH_FLAG="--mac-package-identifier com.${VENDOR}.${APP_NAME}"
           fi
-
+          
           case "${{ matrix.os }}" in
             windows-latest)
               EXT="exe"
               ;;
             ubuntu-latest)
               EXT="deb"
+              # 如果 JDK 21 支持，可以设置架构标识符
+              if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+                ARCH_FLAG="--linux-architecture aarch64"
+              fi
               ;;
             macos-latest)
               EXT="pkg"
@@ -108,7 +136,6 @@ jobs:
           echo "VENDOR: ${VENDOR}"
           echo "APP_NAME: ${APP_NAME}"
           echo "APP_VERSION: ${APP_VERSION}"
-          echo "APP_IDENTIFIER_FLAG: ${APP_IDENTIFIER_FLAG}"
           echo "ARCH_FLAG: ${ARCH_FLAG}"
           echo "JAR_FILE: ${JAR_FILE}"
 
@@ -118,10 +145,13 @@ jobs:
             --app-version "${MAC_APP_VERSION:-$APP_VERSION}" \
             --vendor "${VENDOR}" \
             --name "${APP_NAME}" \
+            --maintainer "MyCompany <support@mycompany.com>" \
+            --description "MyApp is a sample application." \
             ${ARCH_FLAG} \
             --input . \
             --main-jar "${JAR_FILE}" \
             --main-class com.example.githu_bworkflow.GithubWorkflowApplication
+        shell: bash
 
       - name: 上传打包好的应用程序 - ${{ matrix.os }}-${{ matrix.arch }}
         uses: actions/upload-artifact@v3
