@@ -142,8 +142,8 @@ jobs:
       - name: 上传 Windows AMD64 工件
         uses: actions/upload-artifact@v3
         with:
-          name: windows-arm64-package
-          path: output-windows-arm64
+          name: windows-amd64-package
+          path: output-windows-amd64
   # 下面是要添加的 job5
   job5:
     name: 等待 job2, job3, job4 执行完后下载工件并创建 Release
