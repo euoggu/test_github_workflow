@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
     tags:
       - 'v*'
 
@@ -42,7 +43,7 @@ jobs:
         path: ./artifact
 
     - name: 创建 Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: ./artifact/*.jar
         draft: false
