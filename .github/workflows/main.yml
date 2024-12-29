@@ -64,45 +64,45 @@ jobs:
         JAR_FILE=$(find . -name "*.jar" -print -quit)
         echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
 
-        - name: 打包应用程序 - ${{ matrix.os }} ${{ matrix.arch }}
-        run: |
-          VENDOR="MyCompany" # 将 "YourVendor" 替换为你的供应商名称
-          APP_NAME="MyApp"   # 将 "YourAppName" 替换为你的应用名称
-          APP_VERSION=$(echo "${GITHUB_REF#refs/tags/}")
-          APP_IDENTIFIER_FLAG=""
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            APP_IDENTIFIER_FLAG="--app-identifier com.${VENDOR}.${APP_NAME}"
-          fi
-  
-          case "${{ matrix.os }}" in
-            windows-latest)
-              ...
-              ;;
-            ubuntu-latest)
-              ...
-              ;;
-            macos-latest)
-              EXT="pkg"
-              MAC_APP_VERSION=$(echo "${APP_VERSION}" | sed 's/^v//' | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/')
-              if [[ "${{ matrix.arch }}" == "x64" ]]; then
-                ARCH_FLAG="--mac-pkg-identifier com.${VENDOR}.${APP_NAME}"
-              else
-                ARCH_FLAG="--mac-package-identifier com.${VENDOR}.${APP_NAME}"
-              fi
-              ;;
-          esac
-  
-          jpackage \
-            --dest "build" \
-            --type "${EXT}" \
-            --app-version "${MAC_APP_VERSION:-$APP_VERSION}" \
-            --vendor "${VENDOR}" \
-            --name "${APP_NAME}" \
-            ${APP_IDENTIFIER_FLAG} \
-            --input . \
-            --main-jar "${{ env.JAR_FILE }}" \
-            --main-class com.example.githu_bworkflow.GithubWorkflowApplication \
-            ${ARCH_FLAG}
+    - name: 打包应用程序 - ${{ matrix.os }} ${{ matrix.arch }}
+      run: |
+        VENDOR="MyCompany" # 将 "YourVendor" 替换为你的供应商名称
+        APP_NAME="MyApp"   # 将 "YourAppName" 替换为你的应用名称
+        APP_VERSION=$(echo "${GITHUB_REF#refs/tags/}")
+        APP_IDENTIFIER_FLAG=""
+        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+        APP_IDENTIFIER_FLAG="--app-identifier com.${VENDOR}.${APP_NAME}"
+        fi
+
+        case "${{ matrix.os }}" in
+        windows-latest)
+            ...
+            ;;
+        ubuntu-latest)
+            ...
+            ;;
+        macos-latest)
+            EXT="pkg"
+            MAC_APP_VERSION=$(echo "${APP_VERSION}" | sed 's/^v//' | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/')
+            if [[ "${{ matrix.arch }}" == "x64" ]]; then
+            ARCH_FLAG="--mac-pkg-identifier com.${VENDOR}.${APP_NAME}"
+            else
+            ARCH_FLAG="--mac-package-identifier com.${VENDOR}.${APP_NAME}"
+            fi
+            ;;
+        esac
+
+        jpackage \
+        --dest "build" \
+        --type "${EXT}" \
+        --app-version "${MAC_APP_VERSION:-$APP_VERSION}" \
+        --vendor "${VENDOR}" \
+        --name "${APP_NAME}" \
+        ${APP_IDENTIFIER_FLAG} \
+        --input . \
+        --main-jar "${{ env.JAR_FILE }}" \
+        --main-class com.example.githu_bworkflow.GithubWorkflowApplication \
+        ${ARCH_FLAG} 
   
   
 
