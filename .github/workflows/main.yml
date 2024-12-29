@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  ACTIONS_RUNNER_DEBUG: true
+  ACTIONS_STEP_DEBUG: true
+
 jobs:
   job1:
     name: Build and Upload JAR
@@ -48,8 +52,10 @@ jobs:
           distribution: 'temurin'
       - name: Create application image with jpackage (ARM64)
         run: |
+          set -x
           jpackage \
             --name my-app-arm64 \
+            --verbose \
             --description "My Spring Boot Application (ARM64)" \
             --vendor "My Company" \
             --input . \
@@ -76,8 +82,10 @@ jobs:
           distribution: 'temurin'
       - name: Create application image with jpackage (AMD64)
         run: |
+          set -x
           jpackage \
             --name my-app-amd64 \
+            --verbose \
             --description "My Spring Boot Application (AMD64)" \
             --vendor "My Company" \
             --input /home/runner/work/test_github_workflow/test_github_workflow \
