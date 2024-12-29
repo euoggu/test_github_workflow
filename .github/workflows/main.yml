@@ -24,6 +24,8 @@ jobs:
         run: |
           JAR_PATH=$(find target -name "*.jar")
           echo "JAR_PATH=$JAR_PATH" >> $GITHUB_OUTPUT
+          FILENAME=$(basename "$JAR_PATH")
+          echo "FILENAME=$FILENAME" >> $GITHUB_OUTPUT
       - name: Create application image with jpackage
         run: |
           jpackage \
@@ -31,7 +33,7 @@ jobs:
             --description "My Spring Boot Application (ARM64)" \
             --vendor "My Company" \
             --input target/ \
-            --main-jar ${{ steps.find_jar.outputs.JAR_PATH }} \
+            --main-jar ${{ steps.find_jar.outputs.FILENAME }} \
             --dest build/install
       - name: Find package artifact
         id: find_package
