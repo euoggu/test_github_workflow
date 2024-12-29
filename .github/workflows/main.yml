@@ -150,18 +150,17 @@ jobs:
     needs: [job2, job3, job4]    # 等待 job2, job3, job4 全部完成
     runs-on: ubuntu-latest
     steps:
-      # （可选）如果后面要用到仓库代码/标签，需要先拉取
       - name: 检出代码
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # 拉取完整提交历史，才能正确获取 tag
+          fetch-depth: 0
 
       - name: 获取最新 Tag
         id: get_tag
         run: |
-          # 获取全部 tag
-          git fetch --prune --unshallow
-          # 找到最新 tag
+          # 不再使用 --unshallow
+          git fetch --prune --tags
+          
           LATEST_TAG=$(git describe --tags "$(git rev-list --tags --max-count=1)")
           echo "LATEST_TAG=${LATEST_TAG}" >> $GITHUB_ENV
 
