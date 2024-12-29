@@ -23,6 +23,13 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
       - name: Build with Maven
         run: mvn clean install
       - name: Find and Copy JAR artifact
@@ -69,42 +76,3 @@ jobs:
         with:
           name: arm64-package
           path: output-arm64
-
-  job3:
-    name: Package AMD64 Artifact
-    needs: job1
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: app.jar
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-      - name: Create application image with jpackage (AMD64)
-        run: |
-          set -x
-          echo "当前工作目录:"
-          pwd
-          echo "当前目录内容:"
-          ls -la
-          echo "查找 app.jar 位置:"
-          find / -name "app.jar" 2>/dev/null
-          echo "工作目录内容递归显示:"
-          ls -R /home/runner/work/
-          
-          jpackage \
-            --name my-app-amd64 \
-            --verbose \
-            --description "My Spring Boot Application (AMD64)" \
-            --vendor "My Company" \
-            --input /home/runner/work/test_github_workflow/test_github_workflow \
-            --main-jar app.jar \
-            --dest output-amd64
-      - name: Upload AMD64 Package Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: amd64-package
-          path: output-amd64
