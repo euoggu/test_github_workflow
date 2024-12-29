@@ -157,7 +157,37 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: 生成 CHANGELOG
+        run: |
+          # 获取当前日期
+          CURRENT_DATE=$(date +"%Y-%m-%d")
 
+          # 获取所有标签，按创建日期降序排序
+          TAGS=($(git tag --sort=-creatordate))
+
+          LATEST_TAG=${TAGS[0]}
+
+          if [ ${#TAGS[@]} -ge 2 ]; then
+            PREVIOUS_TAG=${TAGS[1]}
+            # 获取两个标签之间的提交记录
+            git log --pretty=format:"* %s" "$PREVIOUS_TAG..$LATEST_TAG" > temp_changelog.md
+          else
+            # 只有一个标签，获取该标签的所有提交记录
+            git log --pretty=format:"* %s" "$LATEST_TAG" > temp_changelog.md
+          fi
+
+          # 生成 CHANGELOG.md
+          echo "# $LATEST_TAG ($CURRENT_DATE)" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          cat temp_changelog.md >> CHANGELOG.md
+          rm temp_changelog.md
+
+      #- name: 获取最新 Tag
+      #  id: get_tag
+      #  run: |
+      #    # 再一次确认最新 Tag，或者也可以复用上面的 LATEST_TAG
+      #    LATEST_TAG=$(git tag --sort=-creatordate | head -n 1)
+      #    echo "LATEST_TAG=${LATEST_TAG}" >> $GITHUB_ENV
       - name: 获取最新 Tag
         id: get_tag
         run: |
@@ -188,19 +218,14 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ env.LATEST_TAG }}             # 使用刚才获取的最新 tag
-          name: "Release ${{ env.LATEST_TAG }}"  # Release 名称也可以与 tag 同名
-          body: |
-            自动构建并发布的多平台工件。 
-            包含:
-            - Linux AMD64
-            - macOS ARM64
-            - Windows AMD64
+          tag: ${{ env.LATEST_TAG }}
+          name: "Release ${{ env.LATEST_TAG }}"
+          # bodyFile：指定我们生成的 CHANGELOG.md 作为 Release 说明
+          bodyFile: "CHANGELOG.md"
           draft: false
           prerelease: false
+          # 上传打包的工件
           artifacts: |
             ./release/linux-amd64/**/*
             ./release/macos-arm64/**/*
             ./release/windows-amd64/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
