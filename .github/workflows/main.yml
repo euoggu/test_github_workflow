@@ -50,8 +50,8 @@ jobs:
       - name: 设置 JDK
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
-          distribution: 'adopt'
+          java-version: '21'
+          distribution: 'temurin'
 
       - name: 下载构建产物
         uses: actions/download-artifact@v3
