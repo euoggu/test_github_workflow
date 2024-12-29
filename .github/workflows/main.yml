@@ -53,14 +53,14 @@ jobs:
         path: ./
     - name: 获取 JAR 文件名
       run: |
-        JAR_FILE=$(find . -name "*.jar" -print -quit)
-        echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+        $jarFile = Get-ChildItem -Path . -Filter "*.jar" | Select-Object -First 1
+        echo "JAR_FILE=$($jarFile.FullName)" >> $env:GITHUB_ENV
     - name: 打包应用程序 - Windows x64
       run: |
         VENDOR="MyCompany"
         APP_NAME="MyApp"
         APP_VERSION=$(echo "${GITHUB_REF#refs/tags/}")
-        jpackage --dest "build" --type "exe" --app-version "${APP_VERSION}" --vendor "${VENDOR}" --name "${APP_NAME}" --input . --main-jar "$JAR_FILE" --main-class com.example.githu_bworkflow.GithubWorkflowApplication --win-x64-bundler
+        jpackage --dest "build" --type "exe" --app-version "${APP_VERSION}" --vendor "${VENDOR}" --name "${APP_NAME}" --input . --main-jar "$env:JAR_FILE" --main-class com.example.githu_bworkflow.GithubWorkflowApplication --win-x64-bundler
     - name: 上传打包好的应用程序 - Windows x64
       uses: actions/upload-artifact@v3
       with:
@@ -85,14 +85,14 @@ jobs:
         path: ./
     - name: 获取 JAR 文件名
       run: |
-        JAR_FILE=$(find . -name "*.jar" -print -quit)
-        echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+        $jarFile = Get-ChildItem -Path . -Filter "*.jar" | Select-Object -First 1
+        echo "JAR_FILE=$($jarFile.FullName)" >> $env:GITHUB_ENV
     - name: 打包应用程序 - Windows arm64
       run: |
         VENDOR="MyCompany"
         APP_NAME="MyApp"
         APP_VERSION=$(echo "${GITHUB_REF#refs/tags/}")
-        jpackage --dest "build" --type "exe" --app-version "${APP_VERSION}" --vendor "${VENDOR}" --name "${APP_NAME}" --input . --main-jar "$JAR_FILE" --main-class com.example.githu_bworkflow.GithubWorkflowApplication --win-arm64-bundler
+        jpackage --dest "build" --type "exe" --app-version "${APP_VERSION}" --vendor "${VENDOR}" --name "${APP_NAME}" --input . --main-jar "$env:JAR_FILE" --main-class com.example.githu_bworkflow.GithubWorkflowApplication --win-arm64-bundler
     - name: 上传打包好的应用程序 - Windows arm64
       uses: actions/upload-artifact@v3
       with:
@@ -117,8 +117,8 @@ jobs:
         path: ./
     - name: 获取 JAR 文件名
       run: |
-        JAR_FILE=$(find . -name "*.jar" -print -quit)
-        echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+        $jarFile = Get-ChildItem -Path . -Filter "*.jar" | Select-Object -First 1
+        echo "JAR_FILE=$($jarFile.FullName)" >> $env:GITHUB_ENV
     - name: 打包应用程序 - Linux x64
       run: |
         VENDOR="MyCompany"
@@ -149,8 +149,8 @@ jobs:
         path: ./
     - name: 获取 JAR 文件名
       run: |
-        JAR_FILE=$(find . -name "*.jar" -print -quit)
-        echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+        $jarFile = Get-ChildItem -Path . -Filter "*.jar" | Select-Object -First 1
+        echo "JAR_FILE=$($jarFile.FullName)" >> $env:GITHUB_ENV
     - name: 打包应用程序 - Linux arm64
       run: |
         VENDOR="MyCompany"
@@ -181,8 +181,8 @@ jobs:
         path: ./
     - name: 获取 JAR 文件名
       run: |
-        JAR_FILE=$(find . -name "*.jar" -print -quit)
-        echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+        $jarFile = Get-ChildItem -Path . -Filter "*.jar" | Select-Object -First 1
+        echo "JAR_FILE=$($jarFile.FullName)" >> $env:GITHUB_ENV
     - name: 打包应用程序 - macOS x64
       run: |
         VENDOR="MyCompany"
@@ -214,8 +214,8 @@ jobs:
         path: ./
     - name: 获取 JAR 文件名
       run: |
-        JAR_FILE=$(find . -name "*.jar" -print -quit)
-        echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+        $jarFile = Get-ChildItem -Path . -Filter "*.jar" | Select-Object -First 1
+        echo "JAR_FILE=$($jarFile.FullName)" >> $env:GITHUB_ENV
     - name: 打包应用程序 - macOS arm64
       run: |
         VENDOR="MyCompany"
