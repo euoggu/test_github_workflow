@@ -28,6 +28,7 @@ jobs:
       - name: Find JAR artifact
         id: find_jar
         run: |
+          set -x
           JAR_PATH=$(find target -name "*.jar")
           echo "JAR_PATH=$JAR_PATH" >> $GITHUB_OUTPUT
       - name: Upload JAR
@@ -53,10 +54,16 @@ jobs:
       - name: Create application image with jpackage (ARM64)
         run: |
           set -x
+          echo "当前工作目录:"
           pwd
-          ls -l /home/runner/work/test_github_workflow/test_github_workflow/app.jar
-          find /home/runner/work/ -name "app.jar"
-            jpackage \
+          echo "当前目录内容:"
+          ls -la
+          echo "查找 app.jar 位置:"
+          find / -name "app.jar" 2>/dev/null
+          echo "工作目录内容递归显示:"
+          ls -R /home/runner/work/
+          
+          jpackage \
             --name my-app-arm64 \
             --verbose \
             --description "My Spring Boot Application (ARM64)" \
@@ -87,6 +94,15 @@ jobs:
       - name: Create application image with jpackage (AMD64)
         run: |
           set -x
+          echo "当前工作目录:"
+          pwd
+          echo "当前目录内容:"
+          ls -la
+          echo "查找 app.jar 位置:"
+          find / -name "app.jar" 2>/dev/null
+          echo "工作目录内容递归显示:"
+          ls -R /home/runner/work/
+          
           jpackage \
             --name my-app-amd64 \
             --verbose \
