@@ -25,12 +25,13 @@ jobs:
           distribution: 'temurin'
       - name: Build with Maven
         run: mvn clean install
-      - name: Find JAR artifact
+      - name: Find and Copy JAR artifact
         id: find_jar
         run: |
           set -x
           JAR_PATH=$(find target -name "*.jar")
-          echo "JAR_PATH=$JAR_PATH" >> $GITHUB_OUTPUT
+          cp "$JAR_PATH" target/app.jar
+          echo "JAR_PATH=target/app.jar" >> $GITHUB_OUTPUT
       - name: Upload JAR
         id: upload_jar
         uses: actions/upload-artifact@v3
