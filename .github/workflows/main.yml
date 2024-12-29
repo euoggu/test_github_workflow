@@ -166,3 +166,34 @@ jobs:
         with:
           name: macos-arm64-package
           path: output-macos-arm64
+
+  job6:
+    name: 制作Windows ARM64工件
+    needs: job1
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        name: 下载 JAR
+        with:
+          name: app.jar
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: 使用 jpackage 创建应用程序镜像 (Windows ARM64)
+        run: |
+          set -x
+          jpackage \
+            --name my-app-windows-arm64 \
+            --verbose \
+            --description "我的 Spring Boot 应用程序 (Windows ARM64)" \
+            --vendor "我的公司" \
+            --input . \
+            --main-jar "app.jar" \
+            --dest output-windows-arm64
+      - name: 上传 Windows ARM64 工件
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-arm64-package
+          path: output-windows-arm64
