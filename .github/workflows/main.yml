@@ -137,7 +137,7 @@ jobs:
             --vendor "MyCompany" \
             --input . \
             --main-jar "app.jar" \
-            --dest output-windows-arm64
+            --dest output-windows-amd64
 
       - name: 上传 Windows AMD64 工件
         uses: actions/upload-artifact@v3
