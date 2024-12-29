@@ -34,6 +34,7 @@ jobs:
             --vendor "My Company" \
             --input target/ \
             --main-jar ${{ steps.find_jar.outputs.FILENAME }} \
+            --main-class com.example.githu_bworkflow.GithuBworkflowApplication \
             --dest build/install
       - name: Find package artifact
         id: find_package
