@@ -89,6 +89,8 @@ jobs:
             ;;
           macos-latest)
             EXT="pkg"
+            # 提取符合 macOS PKG 要求的版本号 (例如: v20241229152637 -> 2024.12.29)
+            MAC_APP_VERSION=$(echo "${APP_VERSION}" | sed 's/^v//' | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/')
             if [[ "${{ matrix.arch }}" == "x64" ]]; then
               ARCH_FLAG="--mac-pkg-identifier com.${VENDOR}.${APP_NAME}"
             else
@@ -100,7 +102,7 @@ jobs:
         jpackage \
           --dest "build" \
           --type "${EXT}" \
-          --app-version "${APP_VERSION}" \
+          --app-version "${MAC_APP_VERSION:-$APP_VERSION}" \
           --vendor "${VENDOR}" \
           --name "${APP_NAME}" \
           --input . \
