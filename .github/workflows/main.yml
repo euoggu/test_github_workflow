@@ -80,7 +80,7 @@ jobs:
             --name my-app-amd64 \
             --description "My Spring Boot Application (AMD64)" \
             --vendor "My Company" \
-            --input . \
+            --input /home/runner/work/test_github_workflow/test_github_workflow \
             --main-jar app.jar \
             --dest output-amd64
       - name: Upload AMD64 Package Artifact
