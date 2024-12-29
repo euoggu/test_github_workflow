@@ -17,14 +17,12 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-      - name: Build with Gradle for ARM64
-        run: ./gradlew assemble -PtargetArchitecture=arm64
+      - name: Build with Maven for ARM64
+        run: mvn clean install -DtargetArchitecture=arm64
       - name: Find JAR artifact
         id: find_jar
         run: |
-          JAR_PATH=$(find build/libs -name "*.jar")
+          JAR_PATH=$(find target -name "*.jar")
           echo "JAR_PATH=$JAR_PATH" >> $GITHUB_OUTPUT
       - name: Create application image with jpackage
         run: |
@@ -32,7 +30,7 @@ jobs:
             --name my-app-arm64 \
             --description "My Spring Boot Application (ARM64)" \
             --vendor "My Company" \
-            --input build/libs \
+            --input target/ \
             --main-jar ${{ steps.find_jar.outputs.JAR_PATH }} \
             --dest build/install
       - name: Find package artifact
