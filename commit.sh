@@ -10,7 +10,8 @@ git add .
 
 # 获取当前时间作为提交信息
 current_time=$(date "+%Y-%m-%d %H:%M:%S")
-commit_message="自动提交 - ${current_time}"
+# 添加触发 GitHub Action 的关键词
+commit_message="[action] 自动提交 - ${current_time}"
 
 # 提交更改
 git commit -m "$commit_message"
