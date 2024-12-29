@@ -53,7 +53,14 @@ jobs:
       - name: Create application image with jpackage (ARM64)
         run: |
           set -x
-          jpackage --name my-app-arm64 --verbose --description "My Spring Boot Application (ARM64)" --vendor "My Company" --input . --main-jar /home/runner/work/Build and Package Artifacts/euoggu/test_github_workflow/app.jar --dest output-arm64
+          jpackage \
+            --name my-app-arm64 \
+            --verbose \
+            --description 'My Spring Boot Application (ARM64)' \
+            --vendor "My Company" \
+            --input . \
+            --main-jar /home/runner/work/Build and Package Artifacts/euoggu/test_github_workflow/app.jar \
+            --dest output-arm64
       - name: Upload ARM64 Package Artifact
         uses: actions/upload-artifact@v3
         with:
