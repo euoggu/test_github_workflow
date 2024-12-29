@@ -104,3 +104,34 @@ jobs:
         with:
           name: amd64-package
           path: output-amd64
+
+  job4:
+    name: 制作Mac AMD64工件
+    needs: job1
+    runs-on: macos-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        name: 下载 JAR
+        with:
+          name: app.jar
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: 使用 jpackage 创建应用程序镜像 (Mac AMD64)
+        run: |
+          set -x
+          jpackage \
+            --name my-app-mac-amd64 \
+            --verbose \
+            --description "我的 Spring Boot 应用程序 (Mac AMD64)" \
+            --vendor "我的公司" \
+            --input . \
+            --main-jar "app.jar" \
+            --dest output-mac-amd64
+      - name: 上传 Mac AMD64 工件
+        uses: actions/upload-artifact@v3
+        with:
+          name: mac-amd64-package
+          path: output-mac-amd64
