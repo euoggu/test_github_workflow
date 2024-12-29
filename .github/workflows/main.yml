@@ -3,8 +3,6 @@ name: BuildandPackageArtifacts
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 env:
   ACTIONS_RUNNER_DEBUG: true
@@ -12,34 +10,33 @@ env:
 
 jobs:
   job1:
-    name: BuildandUploadJAR
+    name: 拉取代码、编译和上传JAR
     runs-on: ubuntu-latest
-    outputs:
-      jar_path: ${{ steps.upload_jar.outputs.upload-url }}
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 17
+        name: 检出代码
+      - name: 设置 JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Cache Maven packages
+      - name: 缓存 Maven 依赖
         uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Build with Maven
+      - name: 使用 Maven 编译
         run: mvn clean install
-      - name: Find and Copy JAR artifact
+      - name: 查找并复制 JAR 工件
         id: find_jar
         run: |
           set -x
           JAR_PATH=$(find target -name "*.jar")
           cp "$JAR_PATH" target/app.jar
           echo "JAR_PATH=target/app.jar" >> $GITHUB_OUTPUT
-      - name: Upload JAR
+      - name: 上传 JAR
         id: upload_jar
         uses: actions/upload-artifact@v3
         with:
@@ -47,32 +44,63 @@ jobs:
           path: ${{ steps.find_jar.outputs.JAR_PATH }}
 
   job2:
-    name: PackageARM64Artifact
+    name: 制作ARM64工件
     needs: job1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
+        name: 下载 JAR
         with:
           name: app.jar
-      - name: Set up JDK 17
+      - name: 设置 JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Create application image with jpackage (ARM64)
+      - name: 使用 jpackage 创建应用程序镜像 (ARM64)
         run: |
           set -x
           jpackage \
             --name my-app-arm64 \
             --verbose \
-            --description "My Spring Boot Application (ARM64)" \
-            --vendor "My Company" \
+            --description "我的 Spring Boot 应用程序 (ARM64)" \
+            --vendor "我的公司" \
             --input . \
             --main-jar "app.jar" \
             --dest output-arm64
-
-      - name: Upload ARM64 Package Artifact
+      - name: 上传 ARM64 工件
         uses: actions/upload-artifact@v3
         with:
           name: arm64-package
           path: output-arm64
+
+  job3:
+    name: 制作AMD64工件
+    needs: job1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        name: 下载 JAR
+        with:
+          name: app.jar
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: 使用 jpackage 创建应用程序镜像 (AMD64)
+        run: |
+          set -x
+          jpackage \
+            --name my-app-amd64 \
+            --verbose \
+            --description "我的 Spring Boot 应用程序 (AMD64)" \
+            --vendor "我的公司" \
+            --input . \
+            --main-jar "app.jar" \
+            --dest output-amd64
+      - name: 上传 AMD64 工件
+        uses: actions/upload-artifact@v3
+        with:
+          name: amd64-package
+          path: output-amd64
