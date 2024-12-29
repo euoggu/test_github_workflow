@@ -104,6 +104,7 @@ jobs:
             --main-class com.example.githu_bworkflow.GithubWorkflowApplication \
             ${ARCH_FLAG}
   
+  
 
     - name: 上传打包好的应用程序 - ${{ matrix.os }} ${{ matrix.arch }}
       uses: actions/upload-artifact@v3
