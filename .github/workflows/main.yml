@@ -199,3 +199,5 @@ jobs:
             ./release/linux-amd64/**/*
             ./release/macos-arm64/**/*
             ./release/windows-amd64/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
