@@ -190,7 +190,7 @@ jobs:
             --name my-app-windows-arm64 \
             --verbose \
             --description "我的 Spring Boot 应用程序 (Windows ARM64)" \
-            --vendor "我的公司" \
+            --vendor "MyCompany" \
             --input . \
             --main-jar "app.jar" \
             --dest output-windows-arm64
