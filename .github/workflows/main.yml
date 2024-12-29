@@ -1,160 +1,47 @@
-name: CI
+name: Build and Package ARM64 Artifact
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
-
-permissions:
-  contents: write
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-package:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: 设置 JDK
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '21'  # 升级到 JDK 21
+          java-version: '17'
           distribution: 'temurin'
-
-      - name: 构建Maven项目
-        run: mvn clean package -DskipTests
-
-      - name: 上传构建产物
-        uses: actions/upload-artifact@v3
-        with:
-          name: built-jar
-          path: target/*.jar
-
-      - name: 列出构建产物目录内容
-        run: ls -la target/
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: build
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        arch: [x64, aarch64]
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: 设置 JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'  # 升级到 JDK 21
-          distribution: 'temurin'
-
-      - name: 下载构建产物
-        uses: actions/download-artifact@v3
-        with:
-          name: built-jar
-          path: ./
-
-      - name: 安装打包依赖 (仅适用于 Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle for ARM64
+        run: ./gradlew assemble -PtargetArchitecture=arm64
+      - name: Find JAR artifact
+        id: find_jar
         run: |
-          sudo apt-get update
-          sudo apt-get install -y fakeroot
-
-
-      # 获取 JAR 文件名 - Unix/Linux/macOS
-      - name: 获取 JAR 文件名 (Unix/Linux/macOS)
-        if: matrix.os != 'windows-latest'
+          JAR_PATH=$(find build/libs -name "*.jar")
+          echo "JAR_PATH=$JAR_PATH" >> $GITHUB_OUTPUT
+      - name: Create application image with jpackage
         run: |
-          JAR_FILE=$(find . -name "*.jar" -print -quit)
-          echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
-        shell: bash
-
-      # 获取 JAR 文件名 - Windows
-      - name: 获取 JAR 文件名 (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          $JAR_FILE = Get-ChildItem -Path . -Filter *.jar -Recurse | Select-Object -First 1 | Select-Object -ExpandProperty FullName
-          echo "JAR_FILE=$JAR_FILE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        shell: powershell
-
-      - name: 验证 jpackage 是否可用
-        run: jpackage --version
-
-      # 调试步骤：列出 images 目录内容
-      - name: 列出 images 目录内容
-        if: matrix.os == 'ubuntu-latest'
-        run: ls -la /tmp/jdk.jpackage*/images
-
-      # 调试步骤：检查 DEBIAN/control 文件
-      - name: 检查 DEBIAN/control 文件
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          CONTROL_FILE=$(find /tmp/jdk.jpackage*/images -name "control")
-          if [ -f "$CONTROL_FILE" ]; then
-            echo "DEBIAN/control 文件存在。内容如下："
-            cat "$CONTROL_FILE"
-          else
-            echo "错误：DEBIAN/control 文件不存在。"
-            exit 1
-          fi
-
-      - name: 打包应用程序 - ${{ matrix.os }}-${{ matrix.arch }}
-        run: |
-          VENDOR="MyCompany" # 将 "MyCompany" 替换为你的供应商名称
-          APP_NAME="MyApp"    # 将 "MyApp" 替换为你的应用名称
-          APP_VERSION=$(echo "${GITHUB_REF#refs/tags/}")
-          ARCH_FLAG=""
-          
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            # 设置正确的 macOS 包标识符
-            ARCH_FLAG="--mac-package-identifier com.${VENDOR}.${APP_NAME}"
-          fi
-          
-          case "${{ matrix.os }}" in
-            windows-latest)
-              EXT="exe"
-              ;;
-            ubuntu-latest)
-              EXT="deb"
-              # 如果 JDK 21 支持，可以设置架构标识符
-              if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
-                ARCH_FLAG="--linux-architecture aarch64"
-              fi
-              ;;
-            macos-latest)
-              EXT="pkg"
-              MAC_APP_VERSION=$(echo "${APP_VERSION}" | sed 's/^v//' | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1.\2.\3/')
-              ;;
-          esac
-
-          echo "打包应用程序 - OS: ${{ matrix.os }}, ARCH: ${{ matrix.arch }}"
-          echo "VENDOR: ${VENDOR}"
-          echo "APP_NAME: ${APP_NAME}"
-          echo "APP_VERSION: ${APP_VERSION}"
-          echo "ARCH_FLAG: ${ARCH_FLAG}"
-          echo "JAR_FILE: ${JAR_FILE}"
-
           jpackage \
-            --dest "build" \
-            --type "${EXT}" \
-            --app-version "${MAC_APP_VERSION:-$APP_VERSION}" \
-            --vendor "${VENDOR}" \
-            --name "${APP_NAME}" \
-            --maintainer "MyCompany <support@mycompany.com>" \
-            --description "MyApp is a sample application." \
-            ${ARCH_FLAG} \
-            --input . \
-            --main-jar "${JAR_FILE}" \
-            --main-class com.example.githu_bworkflow.GithubWorkflowApplication
-        shell: bash
-
-      - name: 上传打包好的应用程序 - ${{ matrix.os }}-${{ matrix.arch }}
+            --name my-app-arm64 \
+            --description "My Spring Boot Application (ARM64)" \
+            --vendor "My Company" \
+            --input build/libs \
+            --main-jar ${{ steps.find_jar.outputs.JAR_PATH }} \
+            --dest build/install
+      - name: Find package artifact
+        id: find_package
+        run: |
+          PACKAGE_PATH=$(find build/install -type f)
+          echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_OUTPUT
+      - name: Upload Package Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.os }}-${{ matrix.arch }}-packages
-          path: build
+          name: arm64-package
+          path: ${{ steps.find_package.outputs.PACKAGE_PATH }}
