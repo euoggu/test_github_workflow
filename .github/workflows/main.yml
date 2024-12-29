@@ -96,18 +96,16 @@ jobs:
               fi
               ;;
           esac
-
           jpackage \
             --dest "build" \
             --type "${EXT}" \
             --app-version "${MAC_APP_VERSION:-$APP_VERSION}" \
             --vendor "${VENDOR}" \
             --name "${APP_NAME}" \
-            ${APP_IDENTIFIER_FLAG} \
             --input . \
             --main-jar "${JAR_FILE}" \
-            --main-class com.example.githu_bworkflow.GithubWorkflowApplication \
-            ${ARCH_FLAG}
+            --main-class com.example.githu_bworkflow.GithubWorkflowApplication
+
 
       - name: 上传打包好的应用程序 - ${{ matrix.os }}-${{ matrix.arch }}
         uses: actions/upload-artifact@v3
