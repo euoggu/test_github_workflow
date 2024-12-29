@@ -59,13 +59,21 @@ jobs:
           name: built-jar
           path: ./
 
-      - name: 列出下载的目录内容
-        run: ls -la
 
-      - name: 获取 JAR 文件名
+      # 为不同平台定义不同的获取 JAR 文件名步骤
+      - name: 获取 JAR 文件名 (Unix/Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: |
           JAR_FILE=$(find . -name "*.jar" -print -quit)
           echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+        shell: bash
+
+      - name: 获取 JAR 文件名 (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          $JAR_FILE = Get-ChildItem -Path . -Filter *.jar -Recurse | Select-Object -First 1 | Select-Object -ExpandProperty FullName
+          echo "JAR_FILE=$JAR_FILE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: powershell
 
       - name: 验证 jpackage 是否可用
         run: jpackage --version
