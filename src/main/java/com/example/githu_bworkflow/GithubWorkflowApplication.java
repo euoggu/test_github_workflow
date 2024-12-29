@@ -8,6 +8,8 @@ public class GithubWorkflowApplication {
 
     public static void main(String[] args) {
         System.out.println("sdfdsfsdf");
+
+
 //        SpringApplication.run(GithubWorkflowApplication.class, args);
     }
 
