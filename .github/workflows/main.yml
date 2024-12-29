@@ -105,6 +105,7 @@ jobs:
           --app-version "${MAC_APP_VERSION:-$APP_VERSION}" \
           --vendor "${VENDOR}" \
           --name "${APP_NAME}" \
+          --app-identifier "com.${VENDOR}.${APP_NAME}" \
           --input . \
           --main-jar "${{ env.JAR_FILE }}" \
           --main-class com.example.githu_bworkflow.GithubWorkflowApplication # 替换为你的主类名
