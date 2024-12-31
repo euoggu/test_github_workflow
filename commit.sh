@@ -6,8 +6,9 @@ export https_proxy=http://192.168.8.1:7897 http_proxy=http://192.168.8.1:7897 al
 # 定义版本号
 VERSION="v1.0.0"
 
+git pull
 # 确保所有更改都已提交
-git add .
+git add --all
 git commit -m "准备发布 $VERSION"
 
 # 推送代码到远程仓库
@@ -15,7 +16,6 @@ git push origin main
 
 # 创建新的标签
 git tag $VERSION
-git push
 # 推送标签到远程仓库，这将触发 GitHub Actions
 git push origin $VERSION
 
