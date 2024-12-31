@@ -12,6 +12,8 @@ import java.util.Scanner;
 public class GithubWorkflowApplication {
 
     public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
         try {
             // 获取桌面路径
             String desktopPath = System.getProperty("user.home") + "\\Desktop";
@@ -27,18 +29,29 @@ public class GithubWorkflowApplication {
                 writer.write("当前系统用户名: " + username);
             }
             
+            System.out.println("=================================");
             System.out.println("文件已创建在: " + file.getAbsolutePath());
-            System.out.println("按回车键退出程序...");
-            
-            // 等待用户输入，这样窗口不会立即关闭
-            new Scanner(System.in).nextLine();
+            System.out.println("=================================");
+            System.out.println("\n请按回车键退出程序...");
             
         } catch (IOException e) {
+            System.err.println("=================================");
             System.err.println("创建文件时发生错误: " + e.getMessage());
-            System.out.println("按回车键退出程序...");
-            new Scanner(System.in).nextLine();
+            System.err.println("=================================");
+            System.out.println("\n请按回车键退出程序...");
         }
 
-        // SpringApplication.run(GithubWorkflowApplication.class, args);
+        // 双重保护：确保窗口不会立即关闭
+        try {
+            scanner.nextLine();
+            Thread.sleep(100); // 稍微延迟一下
+            System.out.println("正在关闭程序...");
+            Thread.sleep(500); // 再次延迟，让用户看到关闭提示
+        } catch (Exception e) {
+            // 如果上面的方式失败，使用另一种方式
+            try {
+                System.in.read();
+            } catch (Exception ignored) {}
+        }
     }
 }
