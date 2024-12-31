@@ -29,7 +29,7 @@ jobs:
           jpackage --input target/ ^
           --dest target/dist ^
           --name YourAppName ^
-          --main-jar your-app.jar ^
+          --main-jar githu_bworkflow-0.0.1-SNAPSHOT.jar ^
           --type exe ^
           --win-shortcut ^
           --win-menu
