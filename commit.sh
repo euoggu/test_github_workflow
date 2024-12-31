@@ -1,27 +1,22 @@
-# export https_proxy="http://172.20.10.1:1082"
-# export http_proxy="http://172.20.10.1:1082"
-export https_proxy=http://127.0.0.1:7897 http_proxy=http://127.0.0.1:7897 all_proxy=socks5://127.0.0.1:7897
+#!/bin/bash
 
-# Git 操作
-echo "开始 Git 操作..."
+# 设置代理（保留原有的代理设置）
+export https_proxy=http://192.168.8.1:7897 http_proxy=http://192.168.8.1:7897 all_proxy=socks5://192.168.8.1:7897
 
-# 添加所有更改的文件
+# 定义版本号
+VERSION="v1.0.0"
+
+# 确保所有更改都已提交
 git add .
+git commit -m "准备发布 $VERSION"
 
-# 获取当前时间作为提交信息和标签
-current_time=$(date "+%Y-%m-%d %H:%M:%S")
-version_tag="v$(date "+%Y%m%d%H%M%S")"  # 创建一个基于时间戳的版本标签
+# 推送代码到远程仓库
+git push origin main
 
-# 添加触发 GitHub Action 的关键词
-commit_message="[action] 自动提交 - ${current_time}"
+# 创建新的标签
+git tag $VERSION
+git push
+# 推送标签到远程仓库，这将触发 GitHub Actions
+git push origin $VERSION
 
-# 提交更改
-git commit -m "$commit_message"
-
-# 创建标签
-git tag -a $version_tag -m "Release $version_tag"
-
-# 推送到远程仓库（包括标签）
-git push origin main --tags
-
-echo "Git 操作完成！"
+echo "已创建并推送标签 $VERSION，GitHub Actions 工作流程将自动开始"
