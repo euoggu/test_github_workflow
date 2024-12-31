@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Scanner;
 
 @SpringBootApplication
 public class GithubWorkflowApplication {
@@ -27,9 +28,15 @@ public class GithubWorkflowApplication {
             }
             
             System.out.println("文件已创建在: " + file.getAbsolutePath());
+            System.out.println("按回车键退出程序...");
+            
+            // 等待用户输入，这样窗口不会立即关闭
+            new Scanner(System.in).nextLine();
             
         } catch (IOException e) {
             System.err.println("创建文件时发生错误: " + e.getMessage());
+            System.out.println("按回车键退出程序...");
+            new Scanner(System.in).nextLine();
         }
 
         // SpringApplication.run(GithubWorkflowApplication.class, args);
