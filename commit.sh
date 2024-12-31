@@ -1,12 +1,24 @@
 #!/bin/bash
 
-# 设置代理（保留原有的代理设置）
+# 设置代理
 export https_proxy=http://192.168.8.1:7897 http_proxy=http://192.168.8.1:7897 all_proxy=socks5://192.168.8.1:7897
 
-# 定义版本号
-VERSION="v1.0.0"
+# 获取最新的标签版本并递增
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+MAJOR=$(echo $LATEST_TAG | sed 's/v\([0-9]*\).\([0-9]*\).\([0-9]*\)/\1/')
+MINOR=$(echo $LATEST_TAG | sed 's/v\([0-9]*\).\([0-9]*\).\([0-9]*\)/\2/')
+PATCH=$(echo $LATEST_TAG | sed 's/v\([0-9]*\).\([0-9]*\).\([0-9]*\)/\3/')
 
+# 递增补丁版本号
+PATCH=$((PATCH + 1))
+VERSION="v$MAJOR.$MINOR.$PATCH"
+
+echo "上一个版本: $LATEST_TAG"
+echo "新版本: $VERSION"
+
+# 拉取最新代码
 git pull
+
 # 确保所有更改都已提交
 git add --all
 git commit -m "准备发布 $VERSION"
