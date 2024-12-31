@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.Scanner;
 
 @SpringBootApplication
-public class GithubWorkflowApplication {
+public class GithuBworkflowApplication {
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -41,14 +41,12 @@ public class GithubWorkflowApplication {
             System.out.println("\n请按回车键退出程序...");
         }
 
-        // 双重保护：确保窗口不会立即关闭
         try {
             scanner.nextLine();
-            Thread.sleep(100); // 稍微延迟一下
+            Thread.sleep(100);
             System.out.println("正在关闭程序...");
-            Thread.sleep(500); // 再次延迟，让用户看到关闭提示
+            Thread.sleep(500);
         } catch (Exception e) {
-            // 如果上面的方式失败，使用另一种方式
             try {
                 System.in.read();
             } catch (Exception ignored) {}
