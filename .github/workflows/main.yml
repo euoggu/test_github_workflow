@@ -33,7 +33,6 @@ jobs:
           jpackage --input target/ ^
           --dest target/dist ^
           --name YourAppName ^
-          --main-class com.example.githu_bworkflow.GithuBworkflowApplication ^
           --main-jar githu_bworkflow-0.0.1-SNAPSHOT.jar ^
           --type exe ^
           --win-console ^
