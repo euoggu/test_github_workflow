@@ -33,12 +33,13 @@ jobs:
           jpackage --input target/ ^
           --dest target/dist ^
           --name YourAppName ^
+          --main-class com.example.githu_bworkflow.GithuBworkflowApplication ^
           --main-jar githu_bworkflow-0.0.1-SNAPSHOT.jar ^
           --type exe ^
           --win-console ^
           --win-shortcut ^
           --win-menu ^
-          --java-options "-Dfile.encoding=UTF-8" ^
+          --java-options "-Dfile.encoding=UTF-8 -verbose:class" ^
           --win-dir-chooser ^
           --description "测试程序" ^
           --app-version "1.0.0" ^
