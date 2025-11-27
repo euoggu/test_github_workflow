@@ -1,0 +1,139 @@
+name: Build Portable Jeprof (ARM64)
+
+on:
+  workflow_dispatch: # 手动触发
+
+jobs:
+  build-portable:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. 启用 QEMU 以支持 ARM64
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # 2. 在 ARM64 容器内执行构建和打包逻辑
+      - name: Build Portable Package inside ARM64 Container
+        run: |
+          # 启动一个 Debian Bullseye (兼容性较好) 的 ARM64 容器
+          # 将当前目录挂载进去，方便把结果拿出来
+          docker run --rm -v $(pwd):/work --platform linux/arm64 debian:bullseye-slim /bin/bash -c '
+            set -e
+            
+            # === 1. 安装基础工具 ===
+            echo "Installing dependencies..."
+            apt-get update
+            apt-get install -y \
+              wget \
+              perl \
+              graphviz \
+              binutils \
+              coreutils
+            
+            # === 2. 创建目录结构 ===
+            echo "Creating directory structure..."
+            BASE_DIR="/work/jeprof-arm64-portable"
+            mkdir -p $BASE_DIR/bin
+            mkdir -p $BASE_DIR/lib
+            mkdir -p $BASE_DIR/etc/graphviz
+            
+            # === 3. 下载 jeprof ===
+            echo "Downloading jeprof..."
+            wget -O $BASE_DIR/bin/jeprof https://raw.githubusercontent.com/jemalloc/jemalloc/dev/bin/jeprof.in
+            chmod +x $BASE_DIR/bin/jeprof
+            
+            # === 4. 复制二进制文件 ===
+            echo "Copying binaries..."
+            # jeprof 需要 dot (画图), nm, objdump, addr2line (符号解析), c++filt (解混淆)
+            cp /usr/bin/dot $BASE_DIR/bin/
+            cp /usr/bin/nm $BASE_DIR/bin/
+            cp /usr/bin/objdump $BASE_DIR/bin/
+            cp /usr/bin/addr2line $BASE_DIR/bin/
+            cp /usr/bin/c++filt $BASE_DIR/bin/ || true
+            
+            # === 5. 暴力抓取依赖库 (这是绿化的关键) ===
+            echo "Gathering shared libraries..."
+            # 定义一个函数来查找并复制依赖
+            copy_deps() {
+              local bin=$1
+              ldd $bin | grep "=> /" | awk "{print \$3}" | sort | uniq | while read -r lib; do
+                if [ -f "$lib" ]; then
+                  cp -u -L "$lib" $BASE_DIR/lib/
+                fi
+              done
+            }
+            
+            # 对所有二进制文件执行抓取
+            for bin in $BASE_DIR/bin/*; do
+              copy_deps $bin
+            done
+            
+            # Graphviz 插件库通常在 /usr/lib/aarch64-linux-gnu/graphviz 或 /usr/lib/graphviz
+            # 我们需要把它们也拷进来，否则 dot 会报错 "no plugin found"
+            if [ -d "/usr/lib/aarch64-linux-gnu/graphviz" ]; then
+                cp -r /usr/lib/aarch64-linux-gnu/graphviz $BASE_DIR/lib/
+            elif [ -d "/usr/lib/graphviz" ]; then
+                cp -r /usr/lib/graphviz $BASE_DIR/lib/
+            fi
+
+            # === 6. 生成 Graphviz 配置文件 ===
+            echo "Generating Graphviz config..."
+            # 我们需要在打包前生成一个 config6 文件，告诉 dot 插件在哪里
+            # 注意：这里生成的路径是容器内的路径，我们在启动脚本里需要动态修复或者指定目录
+            # 这里的策略是把配置生成好，运行时指定环境变量
+            $BASE_DIR/bin/dot -c
+            # Debian通常把 config6 放在 /usr/lib/graphviz/config6 或 /var/lib/graphviz/config6
+            find /usr/lib /var/lib -name "config6" -exec cp {} $BASE_DIR/etc/graphviz/ \; -quit
+
+            # === 7. 创建启动脚本 (run.sh) ===
+            echo "Creating launcher script..."
+            cat > $BASE_DIR/jeprof-run << "EOF"
+#!/bin/bash
+# 获取脚本所在目录的绝对路径
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+# 设置环境变量
+export PATH="$DIR/bin:$PATH"
+export LD_LIBRARY_PATH="$DIR/lib:$DIR/lib/graphviz:$LD_LIBRARY_PATH"
+# 告诉 Graphviz 插件在哪里 (非常重要)
+export GV_FILE_PATH="$DIR/lib/graphviz"
+# 有些版本的 dot 需要这个变量
+export GRAPHVIZ_DOT="$DIR/bin/dot"
+
+# 检查系统是否有 Perl (jeprof 是 perl 脚本)
+if ! command -v perl &> /dev/null; then
+    echo "Error: Perl not found on this system. jeprof requires Perl."
+    exit 1
+fi
+
+# 运行 jeprof，并将参数透传
+# 我们强制指定 objdump 等工具的路径，防止 jeprof 去找系统的
+"$DIR/bin/jeprof" \
+  --dot="$DIR/bin/dot" \
+  --objdump="$DIR/bin/objdump" \
+  --addr2line="$DIR/bin/addr2line" \
+  "$@"
+EOF
+            chmod +x $BASE_DIR/jeprof-run
+            
+            # === 8. 打包 ===
+            echo "Compressing..."
+            tar -czf /work/jeprof-portable-arm64.tar.gz -C /work jeprof-arm64-portable
+          '
+
+      # 3. 上传构建产物
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jeprof-portable-arm64
+          path: jeprof-portable-arm64.tar.gz
+          retention-days: 3
