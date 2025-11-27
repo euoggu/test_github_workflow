@@ -1,48 +1,40 @@
-name: Build ARM64 Jeprof Image
+name: Build ARM64 Image to Tar
 
 on:
-  workflow_dispatch: # 允许手动点击按钮触发
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  workflow_dispatch: # 手动触发
 
 jobs:
-  build-and-push:
+  build-and-export:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write # 需要权限推送到 GHCR
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. 设置 QEMU，这步是构建 ARM 镜像的核心
+      # 1. 配置 QEMU (用于在 x86 机器上构建 ARM 镜像)
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # 2. 设置 Docker Buildx
+      # 2. 配置 Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3. 登录 GitHub 容器仓库
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # 4. 构建并推送
-      - name: Build and push Docker image
+      # 3. 构建并导出为 tar 文件
+      # 注意：这里去掉了 login 步骤，因为不需要推送
+      - name: Build and export
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
-          # 显式指定构建 ARM64 架构
+          # 指定构建为 linux/arm64 架构
           platforms: linux/arm64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-latest
-          # 缓存设置，加快二次构建速度
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: jeprof:latest
+          # 关键修改：不 push，而是输出为 docker 兼容的 tar 包
+          outputs: type=docker,dest=/tmp/jeprof-arm64.tar
+
+      # 4. 上传 Artifact (构建完成后你可以在网页上下载)
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jeprof-arm64-image
+          path: /tmp/jeprof-arm64.tar
+          retention-days: 1
