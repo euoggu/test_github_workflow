@@ -1,0 +1,43 @@
+# SSH 服务配置
+Port 8890
+
+# 监听设置
+ListenAddress 0.0.0.0
+AddressFamily any
+
+# 认证设置
+PermitRootLogin yes
+PasswordAuthentication yes
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+
+# 允许端口转发 (跳板机核心功能)
+AllowTcpForwarding yes
+GatewayPorts yes
+PermitTunnel yes
+X11Forwarding yes
+
+# 允许动态端口转发 (SOCKS代理)
+AllowStreamLocalForwarding yes
+
+# 保持连接
+ClientAliveInterval 60
+ClientAliveCountMax 3
+TCPKeepAlive yes
+
+# 安全设置
+MaxAuthTries 6
+MaxSessions 100
+LoginGraceTime 120
+
+# 日志
+SyslogFacility AUTH
+LogLevel INFO
+
+# 禁用不必要的功能
+UsePAM no
+PrintMotd no
+PrintLastLog yes
+
+# Subsystem
+Subsystem sftp /usr/lib/openssh/sftp-server
