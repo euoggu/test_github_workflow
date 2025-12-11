@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       architecture:
-        description: "Target architecture"
+        description: "目标架构"
         type: choice
         options:
           - arm64
@@ -13,11 +13,11 @@ on:
         required: true
       image_list:
         description: >-
-          Provide Docker images separated by spaces, commas, literal \\n, or real new lines (append |alias to override the tarball name)
+          使用空格、逗号、回车或文字 \\n 分隔多个镜像（可在镜像后追加 |别名 来指定保存文件名）
         type: string
         required: true
       retention_days:
-        description: "Artifact retention in days"
+        description: "构建产物保留天数"
         type: number
         default: 7
         required: false
