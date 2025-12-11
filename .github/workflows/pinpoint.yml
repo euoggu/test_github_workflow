@@ -1,4 +1,4 @@
-name: Pull ARM64 Docker Images
+name: pinpoint
 
 on:
   workflow_dispatch:
