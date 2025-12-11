@@ -1,4 +1,4 @@
-name: sdfsdfsdf
+name: pull-docker-images
 
 on:
   workflow_dispatch:
@@ -34,7 +34,7 @@ jobs:
       - name: 解析镜像列表
         id: parse
         env:
-          IMAGE_LIST: ${{ github.event.inputs.image_list }}
+          IMAGE_LIST: ${{ inputs.image_list }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -78,4 +78,34 @@ PY
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        entry: ${{ fromJSON(needs.parse-images.outputs.matrix
+        entry: ${{ fromJSON(needs.parse-images.outputs.matrix) }}
+    env:
+      TARGET_ARCH: ${{ inputs.architecture }}
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 拉取并保存镜像
+        env:
+          IMAGE_NAME: ${{ matrix.entry.image }}
+          TAR_NAME: ${{ matrix.entry.safe_alias }}-${{ inputs.architecture }}.tar
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          echo "Pulling ${IMAGE_NAME} for linux/${TARGET_ARCH}"
+          docker pull --platform "linux/${TARGET_ARCH}" "${IMAGE_NAME}"
+          echo "Saving ${IMAGE_NAME} to artifacts/${TAR_NAME}"
+          docker save -o "artifacts/${TAR_NAME}" "${IMAGE_NAME}"
+          ls -lh "artifacts/${TAR_NAME}"
+
+      - name: 上传镜像归档
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.entry.safe_alias }}-${{ inputs.architecture }}
+          path: artifacts/${{ matrix.entry.safe_alias }}-${{ inputs.architecture }}.tar
+          retention-days: ${{ inputs.retention_days }}
+          if-no-files-found: error
+          compression-level: 0
