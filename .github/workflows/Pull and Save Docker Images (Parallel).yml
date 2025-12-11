@@ -13,7 +13,7 @@ on:
         required: true
       image_list:
         description: >-
-          Newline-separated Docker images to pull (optionally append |alias to override the tarball name)
+          Provide Docker images separated by spaces, commas, literal \\n, or real new lines (append |alias to override the tarball name)
         type: string
         required: true
       retention_days:
@@ -47,7 +47,16 @@ jobs:
             printf '%s' "$1" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'
           }
 
-          list_block="${IMAGE_LIST:-}"
+          normalize_list() {
+            local text="$1"
+            text="${text//$'\r'/}"
+            text="${text//\\n/$'\n'}"
+            text="$(printf '%s' "$text" | tr ',\t' '\n\n')"
+            text="$(printf '%s' "$text" | tr ' ' '\n')"
+            printf '%s' "$text"
+          }
+
+          list_block="$(normalize_list "${IMAGE_LIST:-}")"
           if [[ -z "${list_block//[[:space:]]/}" ]]; then
             echo "No images provided"
             exit 1
