@@ -1,40 +1,132 @@
-name: Build ARM64 Image to Tar
+name: Pull ARM64 Docker Images
 
 on:
-  workflow_dispatch: # 手动触发
+  workflow_dispatch:
 
 jobs:
-  build-and-export:
+  pull-and-save:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # 1. 配置 QEMU (用于在 x86 机器上构建 ARM 镜像)
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      # 2. 配置 Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3. 构建并导出为 tar 文件
-      # 注意：这里去掉了 login 步骤，因为不需要推送
-      - name: Build and export
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          # 指定构建为 linux/arm64 架构
-          platforms: linux/arm64
-          tags: jeprof:latest
-          # 关键修改：不 push，而是输出为 docker 兼容的 tar 包
-          outputs: type=docker,dest=/tmp/jeprof-arm64.tar
+      - name: Pull pinpoint-hbase
+        run: docker pull --platform linux/arm64 pinpointdocker/pinpoint-hbase:2.5.4
 
-      # 4. 上传 Artifact (构建完成后你可以在网页上下载)
-      - name: Upload Artifact
+      - name: Pull pinpoint-mysql
+        run: docker pull --platform linux/arm64 pinpointdocker/pinpoint-mysql:2.5.4
+
+      - name: Pull pinpoint-web
+        run: docker pull --platform linux/arm64 pinpointdocker/pinpoint-web:2.5.4
+
+      - name: Pull pinpoint-collector
+        run: docker pull --platform linux/arm64 pinpointdocker/pinpoint-collector:2.5.4
+
+      - name: Pull pinpoint-quickstart
+        run: docker pull --platform linux/arm64 pinpointdocker/pinpoint-quickstart
+
+      - name: Pull pinpoint-batch
+        run: docker pull --platform linux/arm64 pinpointdocker/pinpoint-batch:2.5.4
+
+      - name: Pull pinpoint-agent
+        run: docker pull --platform linux/arm64 pinpointdocker/pinpoint-agent:2.5.4
+
+      - name: Pull zookeeper
+        run: docker pull --platform linux/arm64 zookeeper:3.4.13
+
+      - name: Pull pinpoint-flink
+        run: docker pull --platform linux/arm64 pinpointdocker/pinpoint-flink:2.5.4
+
+      - name: Save pinpoint-hbase
+        run: docker save -o pinpoint-hbase-2.5.4-arm64.tar pinpointdocker/pinpoint-hbase:2.5.4
+
+      - name: Save pinpoint-mysql
+        run: docker save -o pinpoint-mysql-2.5.4-arm64.tar pinpointdocker/pinpoint-mysql:2.5.4
+
+      - name: Save pinpoint-web
+        run: docker save -o pinpoint-web-2.5.4-arm64.tar pinpointdocker/pinpoint-web:2.5.4
+
+      - name: Save pinpoint-collector
+        run: docker save -o pinpoint-collector-2.5.4-arm64.tar pinpointdocker/pinpoint-collector:2.5.4
+
+      - name: Save pinpoint-quickstart
+        run: docker save -o pinpoint-quickstart-arm64.tar pinpointdocker/pinpoint-quickstart
+
+      - name: Save pinpoint-batch
+        run: docker save -o pinpoint-batch-2.5.4-arm64.tar pinpointdocker/pinpoint-batch:2.5.4
+
+      - name: Save pinpoint-agent
+        run: docker save -o pinpoint-agent-2.5.4-arm64.tar pinpointdocker/pinpoint-agent:2.5.4
+
+      - name: Save zookeeper
+        run: docker save -o zookeeper-3.4.13-arm64.tar zookeeper:3.4.13
+
+      - name: Save pinpoint-flink
+        run: docker save -o pinpoint-flink-2.5.4-arm64.tar pinpointdocker/pinpoint-flink:2.5.4
+
+      - name: Show file sizes
+        run: ls -lh *.tar
+
+      - name: Upload pinpoint-hbase
         uses: actions/upload-artifact@v4
         with:
-          name: jeprof-arm64-image
-          path: /tmp/jeprof-arm64.tar
-          retention-days: 1
+          name: pinpoint-hbase-2.5.4-arm64
+          path: pinpoint-hbase-2.5.4-arm64.tar
+          retention-days: 7
+
+      - name: Upload pinpoint-mysql
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinpoint-mysql-2.5.4-arm64
+          path: pinpoint-mysql-2.5.4-arm64.tar
+          retention-days: 7
+
+      - name: Upload pinpoint-web
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinpoint-web-2.5.4-arm64
+          path: pinpoint-web-2.5.4-arm64.tar
+          retention-days: 7
+
+      - name: Upload pinpoint-collector
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinpoint-collector-2.5.4-arm64
+          path: pinpoint-collector-2.5.4-arm64.tar
+          retention-days: 7
+
+      - name: Upload pinpoint-quickstart
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinpoint-quickstart-arm64
+          path: pinpoint-quickstart-arm64.tar
+          retention-days: 7
+
+      - name: Upload pinpoint-batch
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinpoint-batch-2.5.4-arm64
+          path: pinpoint-batch-2.5.4-arm64.tar
+          retention-days: 7
+
+      - name: Upload pinpoint-agent
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinpoint-agent-2.5.4-arm64
+          path: pinpoint-agent-2.5.4-arm64.tar
+          retention-days: 7
+
+      - name: Upload zookeeper
+        uses: actions/upload-artifact@v4
+        with:
+          name: zookeeper-3.4.13-arm64
+          path: zookeeper-3.4.13-arm64.tar
+          retention-days: 7
+
+      - name: Upload pinpoint-flink
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinpoint-flink-2.5.4-arm64
+          path: pinpoint-flink-2.5.4-arm64.tar
+          retention-days: 7
