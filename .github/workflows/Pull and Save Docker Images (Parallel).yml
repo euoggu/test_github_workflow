@@ -26,8 +26,59 @@ permissions:
   contents: read
 
 jobs:
-  pull-and-save:
+  parse-images:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.parse.outputs.matrix }}
+    steps:
+      - name: 解析镜像列表
+        id: parse
+        env:
+          IMAGE_LIST: ${{ inputs.image_list }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+import json, os, re, sys
+
+raw = os.environ.get("IMAGE_LIST", "")
+raw = raw.replace("\r", "").replace("\\n", "\n")
+parts = re.split(r"[,\s]+", raw)
+items = []
+
+for part in parts:
+    token = part.strip()
+    if not token or token.startswith("#"):
+        continue
+    image, alias = token, ""
+    if "|" in token:
+        image, alias = token.split("|", 1)
+    image = image.strip()
+    alias = alias.strip() or image
+    if not image:
+        continue
+    safe_alias = re.sub(r"[^a-zA-Z0-9._-]+", "-", alias) or "image"
+    items.append({
+        "image": image,
+        "alias": alias,
+        "safe_alias": safe_alias,
+    })
+
+if not items:
+    print("未提供有效的镜像列表", file=sys.stderr)
+    sys.exit(1)
+
+matrix_json = json.dumps(items)
+with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+    fh.write(f"matrix={matrix_json}\n")
+PY
+
+  pull-and-save:
+    needs: parse-images
+    if: ${{ needs.parse-images.outputs.matrix != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        entry: ${{ fromJSON(needs.parse-images.outputs.matrix) }}
     env:
       TARGET_ARCH: ${{ inputs.architecture }}
     steps:
@@ -37,72 +88,24 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Pull and save images
+      - name: 拉取并保存镜像
         env:
-          IMAGE_LIST: ${{ inputs.image_list }}
+          IMAGE_NAME: ${{ matrix.entry.image }}
+          TAR_NAME: ${{ matrix.entry.safe_alias }}-${{ inputs.architecture }}.tar
         run: |
           set -euo pipefail
-
-          trim() {
-            printf '%s' "$1" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'
-          }
-
-          normalize_list() {
-            local text="$1"
-            text="${text//$'\r'/}"
-            text="${text//\\n/$'\n'}"
-            text="$(printf '%s' "$text" | tr ',\t' '\n\n')"
-            text="$(printf '%s' "$text" | tr ' ' '\n')"
-            printf '%s' "$text"
-          }
-
-          list_block="$(normalize_list "${IMAGE_LIST:-}")"
-          if [[ -z "${list_block//[[:space:]]/}" ]]; then
-            echo "No images provided"
-            exit 1
-          fi
-
           mkdir -p artifacts
-          processed=0
-          while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
-            line="$(trim "$raw_line")"
-            [[ -z "$line" ]] && continue
-            [[ "${line:0:1}" == "#" ]] && continue
+          echo "Pulling ${IMAGE_NAME} for linux/${TARGET_ARCH}"
+          docker pull --platform "linux/${TARGET_ARCH}" "${IMAGE_NAME}"
+          echo "Saving ${IMAGE_NAME} to artifacts/${TAR_NAME}"
+          docker save -o "artifacts/${TAR_NAME}" "${IMAGE_NAME}"
+          ls -lh "artifacts/${TAR_NAME}"
 
-            image_part="$line"
-            alias_part=""
-            if [[ "$line" == *"|"* ]]; then
-              image_part="${line%%|*}"
-              alias_part="${line#*|}"
-            fi
-
-            image="$(trim "$image_part")"
-            alias_value="$(trim "${alias_part:-$image}")"
-            [[ -z "$image" ]] && continue
-
-            safe_alias="$(printf '%s' "$alias_value" | sed -E 's/[^a-zA-Z0-9._-]+/-/g')"
-            tar_name="${safe_alias:-image}-${TARGET_ARCH}.tar"
-
-            echo "Pulling $image for linux/${TARGET_ARCH}"
-            docker pull --platform "linux/${TARGET_ARCH}" "$image"
-            echo "Saving $image to artifacts/${tar_name}"
-            docker save -o "artifacts/${tar_name}" "$image"
-            processed=$((processed + 1))
-          done <<< "$list_block"
-
-          if [[ "$processed" -eq 0 ]]; then
-            echo "No valid images were processed."
-            exit 1
-          fi
-
-      - name: Show file sizes
-        run: ls -lh artifacts
-
-      - name: Upload archives
+      - name: 上传镜像归档
         uses: actions/upload-artifact@v4
         with:
-          name: docker-images-${{ inputs.architecture }}
-          path: artifacts/*.tar
+          name: ${{ matrix.entry.safe_alias }}-${{ inputs.architecture }}
+          path: artifacts/${{ matrix.entry.safe_alias }}-${{ inputs.architecture }}.tar
           retention-days: ${{ inputs.retention_days }}
           if-no-files-found: error
           compression-level: 0
