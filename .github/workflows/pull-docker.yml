@@ -18,8 +18,8 @@ on:
         required: true
       retention_days:
         description: "构建产物保留天数"
-        type: number
-        default: 7
+        type: string
+        default: "7"
         required: false
 
 permissions:
