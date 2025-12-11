@@ -1,72 +1,99 @@
-name: Pull and Save Docker Images (Parallel)
+name: pull-docker-images
 
 on:
   workflow_dispatch:
     inputs:
-      images:
-        description: '镜像列表（每行一个，格式：image:tag）'
-        required: true
-        type: string
       architecture:
-        description: '选择 CPU 架构'
-        required: true
+        description: "Target architecture"
         type: choice
         options:
-          - linux/arm64
-          - linux/amd64
-      retention_days:
-        description: 'Artifact 保留天数'
+          - arm64
+          - amd64
+        default: arm64
         required: true
+      image_list:
+        description: >-
+          Newline-separated Docker images to pull (optionally append |alias to override the tarball name)
+        type: string
+        required: true
+      retention_days:
+        description: "Artifact retention in days"
         type: number
+        default: 7
+        required: false
+
+permissions:
+  contents: read
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-      arch_suffix: ${{ steps.set-matrix.outputs.arch_suffix }}
-    steps:
-      - name: Generate matrix
-        id: set-matrix
-        run: |
-          IMAGES=$(echo "${{ inputs.images }}" | grep -v '^$' | grep -v '^#' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "matrix={\"image\":$IMAGES}" >> $GITHUB_OUTPUT
-          
-          if [ "${{ inputs.architecture }}" = "linux/arm64" ]; then
-            echo "arch_suffix=arm64" >> $GITHUB_OUTPUT
-          else
-            echo "arch_suffix=amd64" >> $GITHUB_OUTPUT
-          fi
-
   pull-and-save:
-    needs: prepare
     runs-on: ubuntu-latest
-    strategy:
-      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
-      fail-fast: false
-    
+    env:
+      TARGET_ARCH: ${{ inputs.architecture }}
     steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Generate filename
-        id: filename
+      - name: Pull and save images
+        env:
+          IMAGE_LIST: ${{ inputs.image_list }}
         run: |
-          FILENAME=$(echo "${{ matrix.image }}" | sed 's/[\/:]/-/g')-${{ needs.prepare.outputs.arch_suffix }}
-          echo "name=$FILENAME" >> $GITHUB_OUTPUT
+          set -euo pipefail
 
-      - name: Pull image
-        run: docker pull --platform ${{ inputs.architecture }} "${{ matrix.image }}"
+          trim() {
+            printf '%s' "$1" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'
+          }
 
-      - name: Save image
-        run: |
-          docker save -o ${{ steps.filename.outputs.name }}.tar "${{ matrix.image }}"
-          ls -lh *.tar
+          list_block="${IMAGE_LIST:-}"
+          if [[ -z "${list_block//[[:space:]]/}" ]]; then
+            echo "No images provided"
+            exit 1
+          fi
 
-      - name: Upload artifact
+          mkdir -p artifacts
+          processed=0
+          while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
+            line="$(trim "$raw_line")"
+            [[ -z "$line" ]] && continue
+            [[ "${line:0:1}" == "#" ]] && continue
+
+            image_part="$line"
+            alias_part=""
+            if [[ "$line" == *"|"* ]]; then
+              image_part="${line%%|*}"
+              alias_part="${line#*|}"
+            fi
+
+            image="$(trim "$image_part")"
+            alias_value="$(trim "${alias_part:-$image}")"
+            [[ -z "$image" ]] && continue
+
+            safe_alias="$(printf '%s' "$alias_value" | sed -E 's/[^a-zA-Z0-9._-]+/-/g')"
+            tar_name="${safe_alias:-image}-${TARGET_ARCH}.tar"
+
+            echo "Pulling $image for linux/${TARGET_ARCH}"
+            docker pull --platform "linux/${TARGET_ARCH}" "$image"
+            echo "Saving $image to artifacts/${tar_name}"
+            docker save -o "artifacts/${tar_name}" "$image"
+            processed=$((processed + 1))
+          done <<< "$list_block"
+
+          if [[ "$processed" -eq 0 ]]; then
+            echo "No valid images were processed."
+            exit 1
+          fi
+
+      - name: Show file sizes
+        run: ls -lh artifacts
+
+      - name: Upload archives
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.filename.outputs.name }}
-          path: ${{ steps.filename.outputs.name }}.tar
+          name: docker-images-${{ inputs.architecture }}
+          path: artifacts/*.tar
           retention-days: ${{ inputs.retention_days }}
+          if-no-files-found: error
           compression-level: 0
