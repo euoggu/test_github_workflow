@@ -1,4 +1,4 @@
-name: pull-docker-images
+name: pull-docker
 
 on:
   workflow_dispatch:
