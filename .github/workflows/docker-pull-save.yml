@@ -1,0 +1,96 @@
+name: Docker pull & save (parameterized)
+
+on:
+  workflow_dispatch:
+    inputs:
+      images:
+        description: "Space-separated images. Example: 'nginx:1.27 alpine:3.20 busybox@sha256:...'"
+        required: true
+        type: string
+      platform:
+        description: "Target platform"
+        required: true
+        type: choice
+        default: linux/arm64
+        options:
+          - linux/amd64
+          - linux/arm64
+          - linux/arm/v7
+      compress:
+        description: "gzip compress tar files"
+        required: true
+        type: choice
+        default: "true"
+        options:
+          - "true"
+          - "false"
+      artifact_name:
+        description: "Artifact name"
+        required: false
+        default: "docker-image-tars"
+        type: string
+      retention_days:
+        description: "Artifact retention days"
+        required: true
+        default: "7"
+        type: string
+
+jobs:
+  pull-save:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU (cross-platform helper)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Parse image list
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${{ inputs.images }}" | tr ' \t\r\n' '\n' | sed '/^$/d' > images.txt
+          echo "Images:"
+          nl -ba images.txt
+
+      - name: Pull images
+        shell: bash
+        run: |
+          set -euo pipefail
+          platform="${{ inputs.platform }}"
+          while IFS= read -r img; do
+            echo "Pulling: $img ($platform)"
+            docker pull --platform "$platform" "$img"
+          done < images.txt
+
+      - name: Save images to tar (optional gzip)
+        shell: bash
+        run: |
+          set -euo pipefail
+          platform="${{ inputs.platform }}"
+          compress="${{ inputs.compress }}"
+          mkdir -p out
+
+          sanitize() { echo "$1" | sed 's/[\/:@]/_/g'; }
+
+          while IFS= read -r img; do
+            base="$(sanitize "$img")-${platform//\//-}"
+            if [[ "$compress" == "true" ]]; then
+              file="out/${base}.tar.gz"
+              echo "Saving: $img -> $file"
+              docker save "$img" | gzip -1 > "$file"
+            else
+              file="out/${base}.tar"
+              echo "Saving: $img -> $file"
+              docker save -o "$file" "$img"
+            fi
+          done < images.txt
+
+          ls -lh out
+
+      - name: Upload artifact (all tars in one)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}-${{ inputs.platform }}
+          path: out/*
+          retention-days: ${{ inputs.retention_days }}
