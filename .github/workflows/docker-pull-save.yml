@@ -88,9 +88,18 @@ jobs:
 
           ls -lh out
 
+      - name: Make safe names
+        id: names
+        shell: bash
+        run: |
+          set -euo pipefail
+          safe_platform="${{ inputs.platform }}"
+          safe_platform="${safe_platform//\//-}"   # linux/arm64 -> linux-arm64
+          echo "safe_platform=$safe_platform" >> "$GITHUB_OUTPUT"
+
       - name: Upload artifact (all tars in one)
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact_name }}-${{ inputs.platform }}
+          name: ${{ inputs.artifact_name }}-${{ steps.names.outputs.safe_platform }}
           path: out/*
           retention-days: ${{ inputs.retention_days }}
