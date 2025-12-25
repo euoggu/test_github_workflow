@@ -1,0 +1,63 @@
+name: build-redisinsight-nokeytar-offline-tar
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag (e.g. 2.60.0-nokeytar)"
+        required: true
+        default: "latest-nokeytar"
+      platforms:
+        description: "Platforms (comma separated): linux/arm64,linux/amd64"
+        required: true
+        default: "linux/arm64"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 这里不用登录任何 registry；我们直接 build 并导出 tar
+      - name: Build image and export as OCI archive tar
+        run: |
+          set -euxo pipefail
+
+          IMAGE="redisinsight-nokeytar:${{ inputs.tag }}"
+          OUT_TAR="redisinsight-nokeytar_${{ inputs.tag }}.oci.tar"
+
+          # 输出为 OCI archive；docker load 可以直接导入
+          docker buildx build \
+            --platform "${{ inputs.platforms }}" \
+            --tag "${IMAGE}" \
+            --output "type=oci,dest=${OUT_TAR}" \
+            .
+
+          ls -lh "${OUT_TAR}"
+
+      - name: Also create gzip (optional)
+        run: |
+          set -euxo pipefail
+          TAR="redisinsight-nokeytar_${{ inputs.tag }}.oci.tar"
+          gzip -9 -c "${TAR}" > "${TAR}.gz"
+          ls -lh "${TAR}.gz"
+
+      - name: Upload artifact (tar and tar.gz)
+        uses: actions/upload-artifact@v4
+        with:
+          name: redisinsight-nokeytar-offline
+          path: |
+            redisinsight-nokeytar_*.oci.tar
+            redisinsight-nokeytar_*.oci.tar.gz
+          if-no-files-found: error
+          retention-days: 14
