@@ -39,7 +39,11 @@ jobs:
         run: |
           set -euxo pipefail
           IMAGE="redisinsight-nokeytar:${{ inputs.tag }}"
-          OUT="redisinsight-nokeytar_${{ inputs.tag }}_${{ inputs.platform }}.tar"
+
+          # 将 linux/arm64 变成 linux_arm64，避免文件路径问题
+          PLATFORM_SAFE="$(echo "${{ inputs.platform }}" | tr '/ ' '__')"
+
+          OUT="redisinsight-nokeytar_${{ inputs.tag }}_${PLATFORM_SAFE}.tar"
 
           docker save -o "${OUT}" "${IMAGE}"
           gzip -9 "${OUT}"
