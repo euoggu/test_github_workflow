@@ -1,71 +1,61 @@
-name: build redis-benchmark (arm64)
+name: build redis-benchmark arm64 (glibc 2.28 compatible)
 
 on:
   workflow_dispatch:
     inputs:
       redis_ref:
-        description: "Redis git ref (tag/branch/commit), e.g. 7.4.0 or unstable"
+        description: "Redis version/tag/branch/commit (e.g. 7.4.0)"
         required: false
         default: "7.4.0"
-      run_benchmark:
-        description: "Run a quick local benchmark after build"
-        type: boolean
-        required: false
-        default: true
 
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
+    container:
+      image: rockylinux:8
 
     steps:
-      - name: Checkout Redis source
-        uses: actions/checkout@v4
-        with:
-          repository: redis/redis
-          ref: ${{ inputs.redis_ref }}
-          fetch-depth: 1
-
-      - name: Install build deps
+      - name: Install build deps (Rocky Linux 8)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential make pkg-config \
-            tcl \
-            tar gzip \
-            file
+          dnf -y update
+          dnf -y groupinstall "Development Tools"
+          dnf -y install git make tar gzip which file
+
+      - name: Checkout Redis source
+        run: |
+          git clone --depth 1 --branch "${{ inputs.redis_ref }}" https://github.com/redis/redis.git
+          cd redis
+          git rev-parse HEAD
 
       - name: Build redis-benchmark
         run: |
+          cd redis
           make -j"$(nproc)" redis-benchmark
+          echo "=== file ==="
           file src/redis-benchmark
-          ./src/redis-benchmark --help | head -n 5
-
-      # 可选：启动本地 redis-server 跑一次简单 benchmark
-      - name: Run quick benchmark (optional)
-        if: ${{ inputs.run_benchmark }}
-        run: |
-          # 构建 redis-server 用于本地自测（不影响最终产物）
-          make -j"$(nproc)" redis-server
-          ./src/redis-server --port 6379 --save "" --appendonly no --daemonize yes
-          sleep 1
-          ./src/redis-benchmark -h 127.0.0.1 -p 6379 -n 200000 -c 50 -t get,set --csv | tee benchmark.csv
-          ./src/redis-cli -p 6379 shutdown || true
+          echo "=== ldd ==="
+          ldd src/redis-benchmark || true
+          echo "=== required GLIBC symbols (quick check) ==="
+          strings -a src/redis-benchmark | grep -Eo 'GLIBC_[0-9]+\.[0-9]+' | sort -Vu | tail -n 20 || true
 
       - name: Package artifact
         run: |
+          cd redis
           mkdir -p dist
           cp -f src/redis-benchmark dist/
-          # 带上版本信息，方便辨认
-          echo "redis_ref=${{ inputs.redis_ref }}" > dist/build-info.txt
-          echo "runner=$(uname -a)" >> dist/build-info.txt
-          echo "sha=$(git rev-parse HEAD)" >> dist/build-info.txt
+          {
+            echo "redis_ref=${{ inputs.redis_ref }}"
+            echo "sha=$(git rev-parse HEAD)"
+            echo "build_container=rockylinux:8 (glibc 2.28 baseline)"
+            echo "arch=$(uname -m)"
+          } > dist/build-info.txt
 
-          tar -C dist -czf redis-benchmark-arm64-${{ inputs.redis_ref }}.tar.gz .
+          tar -C dist -czf redis-benchmark-aarch64-glibc228-${{ inputs.redis_ref }}.tar.gz .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: redis-benchmark-arm64-${{ inputs.redis_ref }}
-          path: redis-benchmark-arm64-${{ inputs.redis_ref }}.tar.gz
+          name: redis-benchmark-aarch64-glibc228-${{ inputs.redis_ref }}
+          path: redis-benchmark-aarch64-glibc228-${{ inputs.redis_ref }}.tar.gz
           if-no-files-found: error
           retention-days: 14
