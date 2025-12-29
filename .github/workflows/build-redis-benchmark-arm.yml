@@ -1,0 +1,71 @@
+name: build redis-benchmark (arm64)
+
+on:
+  workflow_dispatch:
+    inputs:
+      redis_ref:
+        description: "Redis git ref (tag/branch/commit), e.g. 7.4.0 or unstable"
+        required: false
+        default: "7.4.0"
+      run_benchmark:
+        description: "Run a quick local benchmark after build"
+        type: boolean
+        required: false
+        default: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout Redis source
+        uses: actions/checkout@v4
+        with:
+          repository: redis/redis
+          ref: ${{ inputs.redis_ref }}
+          fetch-depth: 1
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential make pkg-config \
+            tcl \
+            tar gzip \
+            file
+
+      - name: Build redis-benchmark
+        run: |
+          make -j"$(nproc)" redis-benchmark
+          file src/redis-benchmark
+          ./src/redis-benchmark --help | head -n 5
+
+      # 可选：启动本地 redis-server 跑一次简单 benchmark
+      - name: Run quick benchmark (optional)
+        if: ${{ inputs.run_benchmark }}
+        run: |
+          # 构建 redis-server 用于本地自测（不影响最终产物）
+          make -j"$(nproc)" redis-server
+          ./src/redis-server --port 6379 --save "" --appendonly no --daemonize yes
+          sleep 1
+          ./src/redis-benchmark -h 127.0.0.1 -p 6379 -n 200000 -c 50 -t get,set --csv | tee benchmark.csv
+          ./src/redis-cli -p 6379 shutdown || true
+
+      - name: Package artifact
+        run: |
+          mkdir -p dist
+          cp -f src/redis-benchmark dist/
+          # 带上版本信息，方便辨认
+          echo "redis_ref=${{ inputs.redis_ref }}" > dist/build-info.txt
+          echo "runner=$(uname -a)" >> dist/build-info.txt
+          echo "sha=$(git rev-parse HEAD)" >> dist/build-info.txt
+
+          tar -C dist -czf redis-benchmark-arm64-${{ inputs.redis_ref }}.tar.gz .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: redis-benchmark-arm64-${{ inputs.redis_ref }}
+          path: redis-benchmark-arm64-${{ inputs.redis_ref }}.tar.gz
+          if-no-files-found: error
+          retention-days: 14
