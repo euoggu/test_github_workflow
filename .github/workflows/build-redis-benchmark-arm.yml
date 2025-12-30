@@ -12,16 +12,16 @@ jobs:
   build:
     runs-on: ubuntu-24.04-arm
     container:
-      image: registry.access.redhat.com/ubi8/ubi:8.10
+      image: registry.access.redhat.com/ubi8/ubi-minimal:8.10
 
     steps:
-      - name: Install build deps (UBI8)
+      - name: Install build deps (UBI8 minimal)
         run: |
-          # UBI8 默认 microdnf
           microdnf -y update
-          microdnf -y install git make gcc gcc-c++ glibc-devel tar gzip which file
-          # 有些包在 BaseOS/AppStream，UBI 能拉到；如缺再补：
-          microdnf -y install diffutils findutils || true
+          microdnf -y install \
+            git make gcc gcc-c++ glibc-devel \
+            tar gzip which file \
+            findutils diffutils
 
       - name: Checkout Redis source
         run: |
@@ -45,7 +45,7 @@ jobs:
           {
             echo "redis_ref=${{ inputs.redis_ref }}"
             echo "sha=$(git rev-parse HEAD)"
-            echo "build_container=ubi8/ubi:8.10 (glibc 2.28 baseline)"
+            echo "build_container=ubi8/ubi-minimal:8.10 (glibc 2.28 baseline)"
             echo "arch=$(uname -m)"
           } > dist/build-info.txt
           tar -C dist -czf redis-benchmark-aarch64-glibc228-${{ inputs.redis_ref }}.tar.gz .
