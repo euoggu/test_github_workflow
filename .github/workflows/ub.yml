@@ -14,11 +14,11 @@ on:
       ssh_password:
         description: 'SSH root password'
         required: true
-        default: 'changeme123'
+        default: 'testymctool'
       ssh_port:
         description: 'SSH port'
         required: true
-        default: '8890'
+        default: '32468'
 
 jobs:
   build:
