@@ -1,4 +1,4 @@
-FROM arm64v8/ubuntu:22.04
+FROM ubuntu:22.04
 
 LABEL maintainer="your-email@example.com"
 LABEL description="Ubuntu ARM64 Jump Server with SSH and Port Forwarding Tools"
