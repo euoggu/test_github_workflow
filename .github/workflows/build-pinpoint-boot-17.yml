@@ -1,12 +1,7 @@
-name: Build Pinpoint 3.0.3 Images
+name: Build Pinpoint 3.0.3 from Maven
 
 on:
-  # 手动触发 (推荐先手动测试)
-  workflow_dispatch:
-  # 或者当 pinpoint/boot 目录下的文件发生变化时触发
-  push:
-    paths:
-      - 'pinpoint/boot/**'
+  workflow_dispatch: # 手动点击触发
 
 jobs:
   build-and-push:
@@ -15,25 +10,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # 定义 Collector 的配置
+          # --- Collector 配置 ---
           - service: collector
-            jar_path: pinpoint/boot/pinpoint-collector-boot-3.0.3.jar
             image_name: pinpoint-collector-boot
+            # Maven Central 下载地址
+            download_url: https://repo1.maven.org/maven2/com/navercorp/pinpoint/pinpoint-collector-starter/3.0.3/pinpoint-collector-starter-3.0.3-exec.jar
           
-          # 定义 Web 的配置
+          # --- Web 配置 ---
           - service: web
-            jar_path: pinpoint/boot/pinpoint-web-boot-3.0.3.jar
             image_name: pinpoint-web-boot
+            # Maven Central 下载地址
+            download_url: https://repo1.maven.org/maven2/com/navercorp/pinpoint/pinpoint-web-starter/3.0.3/pinpoint-web-starter-3.0.3-exec.jar
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      # 1. 设置 QEMU (关键！这是支持 ARM64 构建的核心)
+      # 1. 设置 QEMU (支持 ARM64)
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # 2. 设置 Docker Buildx
+      # 2. 设置 Docker Buildx (支持多架构构建)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -44,35 +38,40 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4. 动态生成通用的 Dockerfile
-      # 我们不需要在仓库里存 Dockerfile，直接用命令生成一个最简单的 JDK 17 环境
+      # 4. 从 Maven Central 下载 Jar 包
+      - name: Download JAR from Maven
+        run: |
+          echo "Downloading from: ${{ matrix.download_url }}"
+          curl -L -o app.jar "${{ matrix.download_url }}"
+          ls -lh app.jar
+
+      # 5. 动态生成 Dockerfile (基于 JDK 17)
       - name: Generate Dockerfile
         run: |
           cat <<EOF > Dockerfile
-          # 使用原生支持多架构的 JDK 17 基础镜像
           FROM eclipse-temurin:17-jre
           
           WORKDIR /app
           
-          # 接收构建参数传入的 jar 路径，复制并改名为 app.jar
-          COPY ${{ matrix.jar_path }} app.jar
+          # 复制刚才下载的 jar 包
+          COPY app.jar app.jar
           
-          # 设置时区 (可选，设为上海时间)
+          # 设置时区
           ENV TZ=Asia/Shanghai
           
           # 启动命令
           ENTRYPOINT ["java", "-jar", "app.jar"]
           EOF
 
-      # 5. 构建并推送 (一次性构建 AMD64 和 ARM64)
+      # 6. 构建并推送 (AMD64 + ARM64)
       - name: Build and Push ${{ matrix.service }}
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
+          # 同时构建 x86 和 ARM 架构
           platforms: linux/amd64,linux/arm64
           push: true
-          # 自动打标签: 3.0.3 和 latest
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image_name }}:3.0.3
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image_name }}:latest
