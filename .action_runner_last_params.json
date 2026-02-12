@@ -1,0 +1,1 @@
+{"workflows":{".github/workflows/docker-pull-save.yml":{"branch":"main","updated_at":"2026-02-12T07:42:27Z","inputs":{"images":"nginx:1.27","platform":"linux/arm64","compress":"true","artifact_name":"docker-image-tars","retention_days":"7"}}}}
